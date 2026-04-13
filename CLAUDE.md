@@ -10,21 +10,20 @@
 
 <!-- Zuletzt aktualisiert: 2026-04-13 via /save -->
 
-**Sprint / Phase:** v1 MVP — vollständig implementiert, bereit für ersten echten Einsatz
+**Sprint / Phase:** v1 MVP — implementiert + gepusht (github.com/robinchoice/docpilot)
 
 **Zuletzt implementiert:**
-- Vollständige GitHub Action in TypeScript: `src/` mit 9 Modulen (diff, filter, context, prompt, llm, pr, inputs, types, main)
-- Provider-agnostisch via `openai` npm Package — OpenRouter default, OpenAI/Anthropic/Ollama konfigurierbar
-- `dist/index.js` gebundelt (ncc), 16 Unit Tests grün, TypeScript fehlerfrei
-- Workflows: CI (`ci.yml`) + Dogfood (`dogfood.yml`)
+- Vollständige GitHub Action in TypeScript: 9 Module, 16 Tests grün, `dist/index.js` committed
+- Provider-agnostisch via `openai` npm Package (OpenRouter default, `api-base-url` konfigurierbar)
+- CI + Dogfood Workflows live
 
 **Als nächstes:**
-- `OPENROUTER_API_KEY` als GitHub Secret hinterlegen → Dogfood aktivieren
-- `dist/` Commit-Strategie klären (für Release-Tags aus `.gitignore` rausnehmen)
+- `OPENROUTER_API_KEY` als GitHub Secret → Dogfood aktivieren
 - Release-Workflow anlegen (ncc build → Tag v1 → GitHub Marketplace)
+- `dist/sourcemap-register.js` aufräumen (untracked)
 
 **Offene Punkte:**
-- LLM-Beschreibung in CLAUDE.md noch "Claude API" — sollte auf "OpenAI-kompatibel / OpenRouter" aktualisiert werden
+- –
 
 ## Geplante Architektur
 
