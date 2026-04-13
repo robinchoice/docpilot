@@ -1,0 +1,54 @@
+name: 'docpilot'
+description: 'Auto-update README.md when code changes, powered by any OpenAI-compatible LLM'
+author: 'robinchoice'
+
+inputs:
+  api-key:
+    description: 'API key for your LLM provider (OpenRouter, OpenAI, Anthropic, etc.)'
+    required: true
+  api-base-url:
+    description: 'OpenAI-compatible API base URL'
+    required: false
+    default: 'https://openrouter.ai/api/v1'
+  model:
+    description: 'Model ID (provider-specific, e.g. anthropic/claude-haiku-4-5-20251001)'
+    required: false
+    default: 'anthropic/claude-haiku-4-5-20251001'
+  target-file:
+    description: 'Documentation file to update'
+    required: false
+    default: 'README.md'
+  github-token:
+    description: 'GitHub token for creating PRs'
+    required: false
+    default: ${{ github.token }}
+  exclude-patterns:
+    description: 'Glob patterns of files to ignore (comma-separated)'
+    required: false
+    default: '*.lock,*.lockb,package-lock.json,yarn.lock,bun.lock,*.png,*.jpg,*.jpeg,*.gif,*.svg,*.ico,*.woff,*.woff2,*.ttf,*.eot,dist/**,build/**,.next/**,node_modules/**,.git/**'
+  pr-labels:
+    description: 'Labels to add to the PR (comma-separated)'
+    required: false
+    default: 'documentation,automated'
+  pr-reviewers:
+    description: 'GitHub usernames to request review from (comma-separated)'
+    required: false
+    default: ''
+  max-file-size:
+    description: 'Maximum file size in bytes to include in context'
+    required: false
+    default: '51200'
+
+outputs:
+  pr-url:
+    description: 'URL of the created pull request (empty if no changes needed)'
+  updated:
+    description: 'Whether the target file was updated ("true" or "false")'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
+
+branding:
+  icon: 'book-open'
+  color: 'blue'

@@ -1,0 +1,25 @@
+name: docpilot (dogfood)
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+      - '.github/workflows/dogfood.yml'
+
+jobs:
+  update-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: ./
+        with:
+          api-key: ${{ secrets.OPENROUTER_API_KEY }}
+          model: anthropic/claude-haiku-4-5-20251001
+          target-file: README.md
+          pr-labels: documentation,automated

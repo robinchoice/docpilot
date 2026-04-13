@@ -8,10 +8,23 @@
 
 ## Aktueller Stand
 
-Ring 1 beruflich — eigenes Repo, promoted aus robin-work am 2026-04-13.
-Status: Konzeptphase. Noch kein Code.
+<!-- Zuletzt aktualisiert: 2026-04-13 via /save -->
 
-Lies `00-status.md` und `01-idee.md` für den vollständigen Kontext.
+**Sprint / Phase:** v1 MVP — vollständig implementiert, bereit für ersten echten Einsatz
+
+**Zuletzt implementiert:**
+- Vollständige GitHub Action in TypeScript: `src/` mit 9 Modulen (diff, filter, context, prompt, llm, pr, inputs, types, main)
+- Provider-agnostisch via `openai` npm Package — OpenRouter default, OpenAI/Anthropic/Ollama konfigurierbar
+- `dist/index.js` gebundelt (ncc), 16 Unit Tests grün, TypeScript fehlerfrei
+- Workflows: CI (`ci.yml`) + Dogfood (`dogfood.yml`)
+
+**Als nächstes:**
+- `OPENROUTER_API_KEY` als GitHub Secret hinterlegen → Dogfood aktivieren
+- `dist/` Commit-Strategie klären (für Release-Tags aus `.gitignore` rausnehmen)
+- Release-Workflow anlegen (ncc build → Tag v1 → GitHub Marketplace)
+
+**Offene Punkte:**
+- LLM-Beschreibung in CLAUDE.md noch "Claude API" — sollte auf "OpenAI-kompatibel / OpenRouter" aktualisiert werden
 
 ## Geplante Architektur
 
