@@ -1,8 +1,10 @@
 import * as exec from '@actions/exec'
 import * as core from '@actions/core'
-import type { GitHub } from '@actions/github/lib/utils.js'
-import type { Context } from '@actions/github/lib/context.js'
+import type { GitHub } from '@actions/github/lib/utils'
+import type { context } from '@actions/github'
 import type { ChangedFile } from './types.js'
+
+type Context = typeof context
 
 const EMPTY_TREE_SHA = '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
 

@@ -1,6 +1,8 @@
 import * as core from '@actions/core'
-import type { GitHub } from '@actions/github/lib/utils.js'
-import type { Context } from '@actions/github/lib/context.js'
+import type { GitHub } from '@actions/github/lib/utils'
+import type { context } from '@actions/github'
+
+type Context = typeof context
 
 const BRANCH_PREFIX = 'docpilot/update-'
 
