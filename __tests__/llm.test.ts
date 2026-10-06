@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest'
-
-// Test the response parsing logic directly without making API calls
-// We import the internals by re-exporting them for test purposes
-// (or test via the public interface with mocks)
+import { parseResponse } from '../src/llm.js'
 
 const VALID_RESPONSE = `Here is the updated documentation.
 
@@ -25,20 +22,16 @@ Here is the content without proper wrapping.`
 
 describe('LLM response parsing', () => {
   it('extracts content from valid response', () => {
-    const match = VALID_RESPONSE.match(/<updated_content>([\s\S]*?)<\/updated_content>/)
-    expect(match).not.toBeNull()
-    expect(match![1].trim()).toContain('# My Project')
-    expect(match![1].trim()).toContain('newFn()')
+    const result = parseResponse(VALID_RESPONSE)
+    expect(result.updatedContent).toContain('# My Project')
+    expect(result.updatedContent).toContain('newFn()')
   })
 
   it('extracts summary from valid response', () => {
-    const match = VALID_RESPONSE.match(/DOCPILOT_SUMMARY:\s*(.+)/)
-    expect(match).not.toBeNull()
-    expect(match![1]).toContain('newFn()')
+    expect(parseResponse(VALID_RESPONSE).summary).toContain('newFn()')
   })
 
   it('detects missing tags in invalid response', () => {
-    const match = INVALID_RESPONSE.match(/<updated_content>([\s\S]*?)<\/updated_content>/)
-    expect(match).toBeNull()
+    expect(() => parseResponse(INVALID_RESPONSE)).toThrow('did not contain <updated_content> tags')
   })
 })

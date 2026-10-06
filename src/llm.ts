@@ -47,7 +47,7 @@ export async function callLLM(
   throw lastError ?? new Error('LLM call failed after retries')
 }
 
-function parseResponse(text: string): UpdateResult {
+export function parseResponse(text: string): UpdateResult {
   const contentMatch = text.match(/<updated_content>([\s\S]*?)<\/updated_content>/)
   if (!contentMatch) {
     throw new Error(
@@ -61,19 +61,7 @@ function parseResponse(text: string): UpdateResult {
   const summaryMatch = text.match(/DOCPILOT_SUMMARY:\s*(.+)/)
   const summary = summaryMatch ? summaryMatch[1].trim() : 'Documentation updated by docpilot'
 
-  // Heuristic: detect if LLM went rogue and rewrote everything
-  const sectionsChanged = extractChangedSections(updatedContent, summary)
-
-  return { updatedContent, summary, sectionsChanged }
-}
-
-function extractChangedSections(content: string, summary: string): string[] {
-  // Extract heading names from the summary if possible, otherwise return generic marker
-  const headings = content.match(/^#{1,6} .+/gm) ?? []
-  const mentioned = headings.filter(h =>
-    summary.toLowerCase().includes(h.replace(/^#+\s*/, '').toLowerCase().slice(0, 20))
-  )
-  return mentioned.length > 0 ? mentioned : ['(see summary)']
+  return { updatedContent, summary }
 }
 
 function sleep(ms: number): Promise<void> {

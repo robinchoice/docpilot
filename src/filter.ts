@@ -12,13 +12,11 @@ const BINARY_EXTENSIONS = new Set([
 
 export function filterFiles(
   files: ChangedFile[],
-  excludePatterns: string[],
-  maxFileSize: number
+  excludePatterns: string[]
 ): ChangedFile[] {
   return files.filter(file => {
     if (isBinary(file.filename)) return false
     if (matchesExcludePattern(file.filename, excludePatterns)) return false
-    if (file.content && file.content.length > maxFileSize) return false
     return true
   })
 }

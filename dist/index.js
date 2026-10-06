@@ -38615,8 +38615,8 @@ function getExecOutput(commandLine, args, options) {
         let stdout = '';
         let stderr = '';
         //Using string decoder covers the case where a mult-byte character is split
-        const stdoutDecoder = new StringDecoder('utf8');
-        const stderrDecoder = new StringDecoder('utf8');
+        const stdoutDecoder = new external_string_decoder_.StringDecoder('utf8');
+        const stderrDecoder = new external_string_decoder_.StringDecoder('utf8');
         const originalStdoutListener = (_a = options === null || options === void 0 ? void 0 : options.listeners) === null || _a === void 0 ? void 0 : _a.stdout;
         const originalStdErrListener = (_b = options === null || options === void 0 ? void 0 : options.listeners) === null || _b === void 0 ? void 0 : _b.stderr;
         const stdErrListener = (data) => {
@@ -44033,14 +44033,14 @@ function parseInputs() {
     const reviewersRaw = getInput('pr-reviewers');
     return {
         apiKey: getInput('api-key', { required: true }),
-        apiBaseUrl: getInput('api-base-url') || 'https://openrouter.ai/api/v1',
-        model: getInput('model') || 'anthropic/claude-haiku-4-5-20251001',
-        targetFile: getInput('target-file') || 'README.md',
+        apiBaseUrl: getInput('api-base-url'),
+        model: getInput('model'),
+        targetFile: getInput('target-file'),
         githubToken: getInput('github-token', { required: true }),
         excludePatterns: excludeRaw ? excludeRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
         prLabels: labelsRaw ? labelsRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
         prReviewers: reviewersRaw ? reviewersRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
-        maxFileSize: parseInt(getInput('max-file-size') || '51200', 10),
+        maxFileSize: parseInt(getInput('max-file-size'), 10),
     };
 }
 
@@ -44062,21 +44062,11 @@ async function getChangedFiles(octokit, context) {
     }
 }
 async function getChangedFilesViaGit(baseSha, headSha) {
-    let diffOutput = '';
-    await exec_exec('git', ['diff', '--unified=3', baseSha, headSha], {
-        listeners: {
-            stdout: (data) => { diffOutput += data.toString(); },
-        },
-        silent: true,
-    });
-    let nameStatusOutput = '';
-    await exec_exec('git', ['diff', '--name-status', baseSha, headSha], {
-        listeners: {
-            stdout: (data) => { nameStatusOutput += data.toString(); },
-        },
-        silent: true,
-    });
-    return parseGitDiff(nameStatusOutput, diffOutput);
+    const [diff, nameStatus] = await Promise.all([
+        getExecOutput('git', ['diff', '--unified=3', baseSha, headSha], { silent: true }),
+        getExecOutput('git', ['diff', '--name-status', baseSha, headSha], { silent: true }),
+    ]);
+    return parseGitDiff(nameStatus.stdout, diff.stdout);
 }
 function parseGitDiff(nameStatus, diff) {
     const fileMap = new Map();
@@ -46126,13 +46116,11 @@ const BINARY_EXTENSIONS = new Set([
     '.exe', '.dll', '.so', '.dylib', '.bin',
     '.pyc', '.class',
 ]);
-function filterFiles(files, excludePatterns, maxFileSize) {
+function filterFiles(files, excludePatterns) {
     return files.filter(file => {
         if (isBinary(file.filename))
             return false;
         if (matchesExcludePattern(file.filename, excludePatterns))
-            return false;
-        if (file.content && file.content.length > maxFileSize)
             return false;
         return true;
     });
@@ -46162,29 +46150,18 @@ async function gatherContext(changedFiles, targetFile, maxFileSize) {
         return (0,promises_namespaceObject.readFile)(actualPath, 'utf-8');
     };
     const currentContent = await readWorkspaceFile(targetFile).catch(() => null) ?? '';
-    const fileContents = new Map();
-    for (const file of changedFiles) {
-        if (file.status === 'removed')
-            continue;
-        if (file.filename === targetFile)
-            continue;
-        try {
-            const content = await readWorkspaceFile(file.filename);
-            if (content === null)
-                continue;
-            if (content.length <= maxFileSize) {
-                fileContents.set(file.filename, content);
-            }
-            else {
-                // Include only first 200 lines for oversized files
-                const truncated = content.split('\n').slice(0, 200).join('\n');
-                fileContents.set(file.filename, truncated + '\n[... truncated ...]');
-            }
-        }
-        catch {
-            // File might not exist (e.g. in a shallow clone) — skip silently
-        }
-    }
+    const contents = await Promise.all(changedFiles
+        .filter(file => file.status !== 'removed' && file.filename !== targetFile)
+        .map(async (file) => {
+        const content = await readWorkspaceFile(file.filename).catch(() => null);
+        if (content === null)
+            return null;
+        if (content.length <= maxFileSize)
+            return [file.filename, content];
+        const truncated = content.split('\n').slice(0, 200).join('\n');
+        return [file.filename, truncated + '\n[... truncated ...]'];
+    }));
+    const fileContents = new Map(contents.filter(entry => entry !== null));
     return { currentContent, fileContents };
 }
 
@@ -54090,15 +54067,7 @@ function llm_parseResponse(text) {
     const updatedContent = contentMatch[1].trim();
     const summaryMatch = text.match(/DOCPILOT_SUMMARY:\s*(.+)/);
     const summary = summaryMatch ? summaryMatch[1].trim() : 'Documentation updated by docpilot';
-    // Heuristic: detect if LLM went rogue and rewrote everything
-    const sectionsChanged = extractChangedSections(updatedContent, summary);
-    return { updatedContent, summary, sectionsChanged };
-}
-function extractChangedSections(content, summary) {
-    // Extract heading names from the summary if possible, otherwise return generic marker
-    const headings = content.match(/^#{1,6} .+/gm) ?? [];
-    const mentioned = headings.filter(h => summary.toLowerCase().includes(h.replace(/^#+\s*/, '').toLowerCase().slice(0, 20)));
-    return mentioned.length > 0 ? mentioned : ['(see summary)'];
+    return { updatedContent, summary };
 }
 function llm_sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -54136,29 +54105,11 @@ async function findExistingPR(octokit, owner, repo, headBranch) {
     return data[0] ?? null;
 }
 async function createNewPR(octokit, owner, repo, baseBranch, headBranch, baseSha, targetFile, content, summary, labels, reviewers) {
-    const { data: baseCommit } = await octokit.rest.git.getCommit({
-        owner, repo, commit_sha: baseSha,
-    });
-    const { data: blob } = await octokit.rest.git.createBlob({
-        owner, repo,
-        content: Buffer.from(content).toString('base64'),
-        encoding: 'base64',
-    });
-    const { data: tree } = await octokit.rest.git.createTree({
-        owner, repo,
-        base_tree: baseCommit.tree.sha,
-        tree: [{ path: targetFile, mode: '100644', type: 'blob', sha: blob.sha }],
-    });
-    const { data: commit } = await octokit.rest.git.createCommit({
-        owner, repo,
-        message: `docs: update ${targetFile}\n\nAuto-generated by docpilot`,
-        tree: tree.sha,
-        parents: [baseSha],
-    });
+    const commitSha = await commitFile(octokit, owner, repo, baseSha, targetFile, content);
     await octokit.rest.git.createRef({
         owner, repo,
         ref: `refs/heads/${headBranch}`,
-        sha: commit.sha,
+        sha: commitSha,
     });
     const { data: pr } = await octokit.rest.pulls.create({
         owner, repo,
@@ -54180,31 +54131,30 @@ async function createNewPR(octokit, owner, repo, baseBranch, headBranch, baseSha
     return pr.html_url;
 }
 async function pushUpdate(octokit, owner, repo, headBranch, targetFile, content, currentHeadSha) {
-    const { data: headCommit } = await octokit.rest.git.getCommit({
-        owner, repo, commit_sha: currentHeadSha,
-    });
-    const { data: blob } = await octokit.rest.git.createBlob({
-        owner, repo,
-        content: Buffer.from(content).toString('base64'),
-        encoding: 'base64',
-    });
-    const { data: tree } = await octokit.rest.git.createTree({
-        owner, repo,
-        base_tree: headCommit.tree.sha,
-        tree: [{ path: targetFile, mode: '100644', type: 'blob', sha: blob.sha }],
-    });
-    const { data: commit } = await octokit.rest.git.createCommit({
-        owner, repo,
-        message: `docs: update ${targetFile}\n\nAuto-generated by docpilot`,
-        tree: tree.sha,
-        parents: [currentHeadSha],
-    });
+    const commitSha = await commitFile(octokit, owner, repo, currentHeadSha, targetFile, content);
     await octokit.rest.git.updateRef({
         owner, repo,
         ref: `heads/${headBranch}`,
-        sha: commit.sha,
+        sha: commitSha,
         force: false,
     });
+}
+async function commitFile(octokit, owner, repo, parentSha, path, content) {
+    const { data: parent } = await octokit.rest.git.getCommit({
+        owner, repo, commit_sha: parentSha,
+    });
+    const { data: tree } = await octokit.rest.git.createTree({
+        owner, repo,
+        base_tree: parent.tree.sha,
+        tree: [{ path, mode: '100644', type: 'blob', content }],
+    });
+    const { data: commit } = await octokit.rest.git.createCommit({
+        owner, repo,
+        message: `docs: update ${path}\n\nAuto-generated by docpilot`,
+        tree: tree.sha,
+        parents: [parentSha],
+    });
+    return commit.sha;
 }
 function buildPRBody(summary) {
     return `## docpilot: Documentation Update
@@ -54228,26 +54178,24 @@ ${summary}
 async function run() {
     const inputs = parseInputs();
     const octokit = getOctokit(inputs.githubToken);
+    setOutput('updated', 'false');
+    setOutput('pr-url', '');
     info('docpilot: analyzing push...');
     // 1. Get changed files
     const allFiles = await getChangedFiles(octokit, github_context);
     info(`${allFiles.length} file(s) changed in push`);
     // 2. Filter irrelevant files
-    const relevantFiles = filterFiles(allFiles, inputs.excludePatterns, inputs.maxFileSize)
+    const relevantFiles = filterFiles(allFiles, inputs.excludePatterns)
         .filter(file => file.filename !== inputs.targetFile);
     info(`${relevantFiles.length} file(s) after filtering`);
     if (relevantFiles.length === 0) {
         info('No relevant files changed. Nothing to do.');
-        setOutput('updated', 'false');
-        setOutput('pr-url', '');
         return;
     }
     // 3. Gather context
     const { currentContent, fileContents } = await gatherContext(relevantFiles, inputs.targetFile, inputs.maxFileSize);
     if (!currentContent) {
         warning(`${inputs.targetFile} not found. Skipping — docpilot v1 only updates existing files.`);
-        setOutput('updated', 'false');
-        setOutput('pr-url', '');
         return;
     }
     // 4. Build prompt
@@ -54258,14 +54206,14 @@ async function run() {
     // 6. Check if content actually changed
     if (result.updatedContent.trim() === currentContent.trim()) {
         info('LLM determined no documentation updates needed.');
-        setOutput('updated', 'false');
-        setOutput('pr-url', '');
         return;
     }
-    // Safety check: warn if more than 60% of content changed (possible hallucination)
-    const similarity = stringSimilarity(currentContent, result.updatedContent);
-    if (similarity < 0.4) {
-        warning(`LLM changed >60% of ${inputs.targetFile}. This may indicate a hallucination. ` +
+    // Warn when the new content differs substantially in length
+    const lengthRatio = Math.min(currentContent.length, result.updatedContent.length) /
+        Math.max(currentContent.length, result.updatedContent.length);
+    if (lengthRatio < 0.4) {
+        warning(`${inputs.targetFile} length differs by >60% of the longer version. ` +
+            'This may indicate a hallucination. ' +
             'Review the PR carefully before merging.');
     }
     // 7. Create PR
@@ -54274,18 +54222,6 @@ async function run() {
     setOutput('updated', 'true');
     setOutput('pr-url', prUrl);
     info(`PR ready: ${prUrl}`);
-}
-function stringSimilarity(a, b) {
-    const aLen = a.length;
-    const bLen = b.length;
-    if (aLen === 0 && bLen === 0)
-        return 1;
-    if (aLen === 0 || bLen === 0)
-        return 0;
-    // Simple character-level ratio (fast, good enough for the heuristic)
-    const shorter = Math.min(aLen, bLen);
-    const longer = Math.max(aLen, bLen);
-    return shorter / longer;
 }
 run().catch(err => {
     setFailed(err instanceof Error ? err.message : String(err));

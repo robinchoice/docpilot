@@ -14,11 +14,9 @@ export interface ChangedFile {
   filename: string
   status: 'added' | 'modified' | 'removed' | 'renamed'
   patch: string
-  content?: string
 }
 
 export interface UpdateResult {
   updatedContent: string
   summary: string
-  sectionsChanged: string[]
 }

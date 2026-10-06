@@ -27,23 +27,12 @@ export async function getChangedFiles(
 }
 
 async function getChangedFilesViaGit(baseSha: string, headSha: string): Promise<ChangedFile[]> {
-  let diffOutput = ''
-  await exec.exec('git', ['diff', '--unified=3', baseSha, headSha], {
-    listeners: {
-      stdout: (data: Buffer) => { diffOutput += data.toString() },
-    },
-    silent: true,
-  })
+  const [diff, nameStatus] = await Promise.all([
+    exec.getExecOutput('git', ['diff', '--unified=3', baseSha, headSha], { silent: true }),
+    exec.getExecOutput('git', ['diff', '--name-status', baseSha, headSha], { silent: true }),
+  ])
 
-  let nameStatusOutput = ''
-  await exec.exec('git', ['diff', '--name-status', baseSha, headSha], {
-    listeners: {
-      stdout: (data: Buffer) => { nameStatusOutput += data.toString() },
-    },
-    silent: true,
-  })
-
-  return parseGitDiff(nameStatusOutput, diffOutput)
+  return parseGitDiff(nameStatus.stdout, diff.stdout)
 }
 
 function parseGitDiff(nameStatus: string, diff: string): ChangedFile[] {

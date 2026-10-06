@@ -22,24 +22,16 @@ export async function gatherContext(
   }
   const currentContent = await readWorkspaceFile(targetFile).catch(() => null) ?? ''
 
-  const fileContents = new Map<string, string>()
-  for (const file of changedFiles) {
-    if (file.status === 'removed') continue
-    if (file.filename === targetFile) continue
-    try {
-      const content = await readWorkspaceFile(file.filename)
-      if (content === null) continue
-      if (content.length <= maxFileSize) {
-        fileContents.set(file.filename, content)
-      } else {
-        // Include only first 200 lines for oversized files
-        const truncated = content.split('\n').slice(0, 200).join('\n')
-        fileContents.set(file.filename, truncated + '\n[... truncated ...]')
-      }
-    } catch {
-      // File might not exist (e.g. in a shallow clone) — skip silently
-    }
-  }
+  const contents = await Promise.all(changedFiles
+    .filter(file => file.status !== 'removed' && file.filename !== targetFile)
+    .map(async file => {
+      const content = await readWorkspaceFile(file.filename).catch(() => null)
+      if (content === null) return null
+      if (content.length <= maxFileSize) return [file.filename, content] as const
+      const truncated = content.split('\n').slice(0, 200).join('\n')
+      return [file.filename, truncated + '\n[... truncated ...]'] as const
+    }))
+  const fileContents = new Map(contents.filter(entry => entry !== null))
 
   return { currentContent, fileContents }
 }

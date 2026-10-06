@@ -25,7 +25,7 @@ inputs:
   exclude-patterns:
     description: 'Glob patterns of files to ignore (comma-separated)'
     required: false
-    default: '*.lock,*.lockb,package-lock.json,yarn.lock,bun.lock,*.png,*.jpg,*.jpeg,*.gif,*.svg,*.ico,*.woff,*.woff2,*.ttf,*.eot,dist/**,build/**,.next/**,node_modules/**,.git/**'
+    default: '*.lock,*.lockb,package-lock.json,yarn.lock,bun.lock,dist/**,build/**,.next/**,node_modules/**,.git/**'
   pr-labels:
     description: 'Labels to add to the PR (comma-separated)'
     required: false
