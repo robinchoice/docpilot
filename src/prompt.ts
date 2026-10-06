@@ -79,11 +79,8 @@ function prioritizeFiles(
     const priorityIdx = PRIORITY_FILENAMES.indexOf(basename)
     const priority = priorityIdx >= 0 ? priorityIdx : PRIORITY_FILENAMES.length
 
-    // Boost files mentioned in existing README (simple heuristic: filename appears in diff)
-    const inDiff = changedFiles.some(f => f.patch.includes(basename))
-    const finalPriority = inDiff ? priority - 100 : priority
-
-    entries.push({ filename, content, priority: finalPriority })
+    const inDiff = changedFiles.some(f => f.filename !== filename && f.patch.includes(basename))
+    entries.push({ filename, content, priority: inDiff ? priority - 100 : priority })
   }
 
   return entries

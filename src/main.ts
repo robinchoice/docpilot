@@ -20,6 +20,7 @@ async function run(): Promise<void> {
 
   // 2. Filter irrelevant files
   const relevantFiles = filterFiles(allFiles, inputs.excludePatterns, inputs.maxFileSize)
+    .filter(file => file.filename !== inputs.targetFile)
   core.info(`${relevantFiles.length} file(s) after filtering`)
 
   if (relevantFiles.length === 0) {

@@ -25,6 +25,10 @@ export async function createOrUpdatePR(
   if (existing) {
     core.info(`Updating existing PR #${existing.number}: ${existing.html_url}`)
     await pushUpdate(octokit, owner, repo, headBranch, targetFile, updatedContent, existing.head.sha)
+    await octokit.rest.pulls.update({
+      owner, repo, pull_number: existing.number,
+      body: buildPRBody(summary),
+    })
     return existing.html_url
   }
 

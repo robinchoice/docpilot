@@ -46149,8 +46149,19 @@ function matchesExcludePattern(filename, patterns) {
 const promises_namespaceObject = require("fs/promises");
 ;// CONCATENATED MODULE: ./src/context.ts
 
+
 async function gatherContext(changedFiles, targetFile, maxFileSize) {
-    const currentContent = await (0,promises_namespaceObject.readFile)(targetFile, 'utf-8').catch(() => '');
+    const workspace = await (0,promises_namespaceObject.realpath)(process.env.GITHUB_WORKSPACE || process.cwd());
+    const readWorkspaceFile = async (filename) => {
+        const path = (0,external_path_.resolve)(workspace, filename);
+        if ((await (0,promises_namespaceObject.lstat)(path)).isSymbolicLink())
+            return null;
+        const actualPath = await (0,promises_namespaceObject.realpath)(path);
+        if (!actualPath.startsWith(workspace + external_path_.sep))
+            return null;
+        return (0,promises_namespaceObject.readFile)(actualPath, 'utf-8');
+    };
+    const currentContent = await readWorkspaceFile(targetFile).catch(() => null) ?? '';
     const fileContents = new Map();
     for (const file of changedFiles) {
         if (file.status === 'removed')
@@ -46158,7 +46169,9 @@ async function gatherContext(changedFiles, targetFile, maxFileSize) {
         if (file.filename === targetFile)
             continue;
         try {
-            const content = await (0,promises_namespaceObject.readFile)(file.filename, 'utf-8');
+            const content = await readWorkspaceFile(file.filename);
+            if (content === null)
+                continue;
             if (content.length <= maxFileSize) {
                 fileContents.set(file.filename, content);
             }
@@ -46234,10 +46247,8 @@ function prioritizeFiles(changedFiles, fileContents) {
         const basename = filename.split('/').pop() ?? '';
         const priorityIdx = PRIORITY_FILENAMES.indexOf(basename);
         const priority = priorityIdx >= 0 ? priorityIdx : PRIORITY_FILENAMES.length;
-        // Boost files mentioned in existing README (simple heuristic: filename appears in diff)
-        const inDiff = changedFiles.some(f => f.patch.includes(basename));
-        const finalPriority = inDiff ? priority - 100 : priority;
-        entries.push({ filename, content, priority: finalPriority });
+        const inDiff = changedFiles.some(f => f.filename !== filename && f.patch.includes(basename));
+        entries.push({ filename, content, priority: inDiff ? priority - 100 : priority });
     }
     return entries
         .sort((a, b) => a.priority - b.priority)
@@ -54105,6 +54116,10 @@ async function createOrUpdatePR(octokit, context, updatedContent, targetFile, su
     if (existing) {
         info(`Updating existing PR #${existing.number}: ${existing.html_url}`);
         await pushUpdate(octokit, owner, repo, headBranch, targetFile, updatedContent, existing.head.sha);
+        await octokit.rest.pulls.update({
+            owner, repo, pull_number: existing.number,
+            body: buildPRBody(summary),
+        });
         return existing.html_url;
     }
     // Create new branch + PR
@@ -54218,7 +54233,8 @@ async function run() {
     const allFiles = await getChangedFiles(octokit, github_context);
     info(`${allFiles.length} file(s) changed in push`);
     // 2. Filter irrelevant files
-    const relevantFiles = filterFiles(allFiles, inputs.excludePatterns, inputs.maxFileSize);
+    const relevantFiles = filterFiles(allFiles, inputs.excludePatterns, inputs.maxFileSize)
+        .filter(file => file.filename !== inputs.targetFile);
     info(`${relevantFiles.length} file(s) after filtering`);
     if (relevantFiles.length === 0) {
         info('No relevant files changed. Nothing to do.');
