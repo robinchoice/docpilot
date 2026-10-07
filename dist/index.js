@@ -54094,7 +54094,6 @@ async function createOrUpdatePR(octokit, context, updatedContent, targetFile, su
             owner, repo,
             ref: `heads/${headBranch}`,
             sha: commitSha,
-            force: false,
         });
         await octokit.rest.pulls.update({
             owner, repo, pull_number: existing.number,
@@ -54104,19 +54103,7 @@ async function createOrUpdatePR(octokit, context, updatedContent, targetFile, su
     }
     // Create new branch + PR
     info(`Creating new branch ${headBranch}`);
-    const prUrl = await createNewPR(octokit, owner, repo, baseBranch, headBranch, context.sha, targetFile, updatedContent, summary, labels, reviewers);
-    return prUrl;
-}
-async function findExistingPR(octokit, owner, repo, headBranch) {
-    const { data } = await octokit.rest.pulls.list({
-        owner, repo,
-        state: 'open',
-        head: `${owner}:${headBranch}`,
-    });
-    return data[0] ?? null;
-}
-async function createNewPR(octokit, owner, repo, baseBranch, headBranch, baseSha, targetFile, content, summary, labels, reviewers) {
-    const commitSha = await commitFile(octokit, owner, repo, baseSha, targetFile, content);
+    const commitSha = await commitFile(octokit, owner, repo, context.sha, targetFile, updatedContent);
     await octokit.rest.git.createRef({
         owner, repo,
         ref: `refs/heads/${headBranch}`,
@@ -54140,6 +54127,14 @@ async function createNewPR(octokit, owner, repo, baseBranch, headBranch, baseSha
         }).catch(err => warning(`Could not add reviewers: ${err}`));
     }
     return pr.html_url;
+}
+async function findExistingPR(octokit, owner, repo, headBranch) {
+    const { data } = await octokit.rest.pulls.list({
+        owner, repo,
+        state: 'open',
+        head: `${owner}:${headBranch}`,
+    });
+    return data[0] ?? null;
 }
 async function commitFile(octokit, owner, repo, parentSha, path, content) {
     const { data: parent } = await octokit.rest.git.getCommit({

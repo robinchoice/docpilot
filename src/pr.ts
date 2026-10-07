@@ -29,7 +29,6 @@ export async function createOrUpdatePR(
       owner, repo,
       ref: `heads/${headBranch}`,
       sha: commitSha,
-      force: false,
     })
     await octokit.rest.pulls.update({
       owner, repo, pull_number: existing.number,
@@ -40,45 +39,7 @@ export async function createOrUpdatePR(
 
   // Create new branch + PR
   core.info(`Creating new branch ${headBranch}`)
-  const prUrl = await createNewPR(
-    octokit, owner, repo,
-    baseBranch, headBranch,
-    context.sha,
-    targetFile, updatedContent,
-    summary, labels, reviewers
-  )
-
-  return prUrl
-}
-
-async function findExistingPR(
-  octokit: InstanceType<typeof GitHub>,
-  owner: string,
-  repo: string,
-  headBranch: string
-): Promise<{ number: number; html_url: string; head: { sha: string } } | null> {
-  const { data } = await octokit.rest.pulls.list({
-    owner, repo,
-    state: 'open',
-    head: `${owner}:${headBranch}`,
-  })
-  return data[0] ?? null
-}
-
-async function createNewPR(
-  octokit: InstanceType<typeof GitHub>,
-  owner: string,
-  repo: string,
-  baseBranch: string,
-  headBranch: string,
-  baseSha: string,
-  targetFile: string,
-  content: string,
-  summary: string,
-  labels: string[],
-  reviewers: string[]
-): Promise<string> {
-  const commitSha = await commitFile(octokit, owner, repo, baseSha, targetFile, content)
+  const commitSha = await commitFile(octokit, owner, repo, context.sha, targetFile, updatedContent)
 
   await octokit.rest.git.createRef({
     owner, repo,
@@ -107,6 +68,20 @@ async function createNewPR(
   }
 
   return pr.html_url
+}
+
+async function findExistingPR(
+  octokit: InstanceType<typeof GitHub>,
+  owner: string,
+  repo: string,
+  headBranch: string
+): Promise<{ number: number; html_url: string; head: { sha: string } } | null> {
+  const { data } = await octokit.rest.pulls.list({
+    owner, repo,
+    state: 'open',
+    head: `${owner}:${headBranch}`,
+  })
+  return data[0] ?? null
 }
 
 async function commitFile(
