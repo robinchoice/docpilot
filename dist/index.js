@@ -44031,6 +44031,10 @@ function parseInputs() {
     const excludeRaw = getInput('exclude-patterns');
     const labelsRaw = getInput('pr-labels');
     const reviewersRaw = getInput('pr-reviewers');
+    const maxFileSize = Number(getInput('max-file-size') || '51200');
+    if (!Number.isSafeInteger(maxFileSize) || maxFileSize <= 0) {
+        throw new Error('max-file-size must be a positive integer');
+    }
     return {
         apiKey: getInput('api-key', { required: true }),
         apiBaseUrl: getInput('api-base-url') || 'https://openrouter.ai/api/v1',
@@ -44040,7 +44044,7 @@ function parseInputs() {
         excludePatterns: excludeRaw ? excludeRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
         prLabels: labelsRaw ? labelsRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
         prReviewers: reviewersRaw ? reviewersRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
-        maxFileSize: parseInt(getInput('max-file-size') || '51200', 10),
+        maxFileSize,
     };
 }
 
@@ -46137,13 +46141,17 @@ async function gatherContext(changedFiles, targetFile, maxFileSize) {
     const readWorkspaceFile = async (filename) => {
         try {
             const path = (0,external_path_.resolve)(workspace, filename);
+            if ((await (0,promises_namespaceObject.lstat)(path)).isSymbolicLink())
+                return null;
             const actualPath = await (0,promises_namespaceObject.realpath)(path);
             if (!actualPath.startsWith(workspace + external_path_.sep))
                 return null;
             return await (0,promises_namespaceObject.readFile)(actualPath, 'utf-8');
         }
-        catch {
-            return null;
+        catch (err) {
+            if (err.code === 'ENOENT')
+                return null;
+            throw err;
         }
     };
     const currentContent = await readWorkspaceFile(targetFile) ?? '';

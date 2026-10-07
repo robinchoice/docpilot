@@ -5,6 +5,10 @@ export function parseInputs(): ActionInputs {
   const excludeRaw = core.getInput('exclude-patterns')
   const labelsRaw = core.getInput('pr-labels')
   const reviewersRaw = core.getInput('pr-reviewers')
+  const maxFileSize = Number(core.getInput('max-file-size') || '51200')
+  if (!Number.isSafeInteger(maxFileSize) || maxFileSize <= 0) {
+    throw new Error('max-file-size must be a positive integer')
+  }
 
   return {
     apiKey: core.getInput('api-key', { required: true }),
@@ -15,6 +19,6 @@ export function parseInputs(): ActionInputs {
     excludePatterns: excludeRaw ? excludeRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
     prLabels: labelsRaw ? labelsRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
     prReviewers: reviewersRaw ? reviewersRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
-    maxFileSize: parseInt(core.getInput('max-file-size') || '51200', 10),
+    maxFileSize,
   }
 }

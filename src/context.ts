@@ -1,4 +1,4 @@
-import { readFile, realpath } from 'fs/promises'
+import { lstat, readFile, realpath } from 'fs/promises'
 import { resolve, sep } from 'path'
 import type { ChangedFile } from './types.js'
 
@@ -16,11 +16,13 @@ export async function gatherContext(
   const readWorkspaceFile = async (filename: string): Promise<string | null> => {
     try {
       const path = resolve(workspace, filename)
+      if ((await lstat(path)).isSymbolicLink()) return null
       const actualPath = await realpath(path)
       if (!actualPath.startsWith(workspace + sep)) return null
       return await readFile(actualPath, 'utf-8')
-    } catch {
-      return null
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null
+      throw err
     }
   }
   const currentContent = await readWorkspaceFile(targetFile) ?? ''
