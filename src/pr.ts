@@ -24,7 +24,13 @@ export async function createOrUpdatePR(
 
   if (existing) {
     core.info(`Updating existing PR #${existing.number}: ${existing.html_url}`)
-    await pushUpdate(octokit, owner, repo, headBranch, targetFile, updatedContent, existing.head.sha)
+    const commitSha = await commitFile(octokit, owner, repo, existing.head.sha, targetFile, updatedContent)
+    await octokit.rest.git.updateRef({
+      owner, repo,
+      ref: `heads/${headBranch}`,
+      sha: commitSha,
+      force: false,
+    })
     await octokit.rest.pulls.update({
       owner, repo, pull_number: existing.number,
       body: buildPRBody(summary),
@@ -101,25 +107,6 @@ async function createNewPR(
   }
 
   return pr.html_url
-}
-
-async function pushUpdate(
-  octokit: InstanceType<typeof GitHub>,
-  owner: string,
-  repo: string,
-  headBranch: string,
-  targetFile: string,
-  content: string,
-  currentHeadSha: string
-): Promise<void> {
-  const commitSha = await commitFile(octokit, owner, repo, currentHeadSha, targetFile, content)
-
-  await octokit.rest.git.updateRef({
-    owner, repo,
-    ref: `heads/${headBranch}`,
-    sha: commitSha,
-    force: false,
-  })
 }
 
 async function commitFile(

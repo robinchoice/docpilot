@@ -14,17 +14,21 @@ export async function gatherContext(
 ): Promise<GatheredContext> {
   const workspace = await realpath(process.env.GITHUB_WORKSPACE || process.cwd())
   const readWorkspaceFile = async (filename: string): Promise<string | null> => {
-    const path = resolve(workspace, filename)
-    const actualPath = await realpath(path)
-    if (!actualPath.startsWith(workspace + sep)) return null
-    return readFile(actualPath, 'utf-8')
+    try {
+      const path = resolve(workspace, filename)
+      const actualPath = await realpath(path)
+      if (!actualPath.startsWith(workspace + sep)) return null
+      return await readFile(actualPath, 'utf-8')
+    } catch {
+      return null
+    }
   }
-  const currentContent = await readWorkspaceFile(targetFile).catch(() => null) ?? ''
+  const currentContent = await readWorkspaceFile(targetFile) ?? ''
 
   const contents = await Promise.all(changedFiles
     .filter(file => file.status !== 'removed' && file.filename !== targetFile)
     .map(async file => {
-      const content = await readWorkspaceFile(file.filename).catch(() => null)
+      const content = await readWorkspaceFile(file.filename)
       if (content === null) return null
       if (content.length <= maxFileSize) return [file.filename, content] as const
       const truncated = content.split('\n').slice(0, 200).join('\n')

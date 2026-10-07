@@ -46117,13 +46117,7 @@ const BINARY_EXTENSIONS = new Set([
     '.pyc', '.class',
 ]);
 function filterFiles(files, excludePatterns) {
-    return files.filter(file => {
-        if (isBinary(file.filename))
-            return false;
-        if (matchesExcludePattern(file.filename, excludePatterns))
-            return false;
-        return true;
-    });
+    return files.filter(file => !isBinary(file.filename) && !matchesExcludePattern(file.filename, excludePatterns));
 }
 function isBinary(filename) {
     const ext = filename.slice(filename.lastIndexOf('.')).toLowerCase();
@@ -46141,17 +46135,22 @@ const promises_namespaceObject = require("fs/promises");
 async function gatherContext(changedFiles, targetFile, maxFileSize) {
     const workspace = await (0,promises_namespaceObject.realpath)(process.env.GITHUB_WORKSPACE || process.cwd());
     const readWorkspaceFile = async (filename) => {
-        const path = (0,external_path_.resolve)(workspace, filename);
-        const actualPath = await (0,promises_namespaceObject.realpath)(path);
-        if (!actualPath.startsWith(workspace + external_path_.sep))
+        try {
+            const path = (0,external_path_.resolve)(workspace, filename);
+            const actualPath = await (0,promises_namespaceObject.realpath)(path);
+            if (!actualPath.startsWith(workspace + external_path_.sep))
+                return null;
+            return await (0,promises_namespaceObject.readFile)(actualPath, 'utf-8');
+        }
+        catch {
             return null;
-        return (0,promises_namespaceObject.readFile)(actualPath, 'utf-8');
+        }
     };
-    const currentContent = await readWorkspaceFile(targetFile).catch(() => null) ?? '';
+    const currentContent = await readWorkspaceFile(targetFile) ?? '';
     const contents = await Promise.all(changedFiles
         .filter(file => file.status !== 'removed' && file.filename !== targetFile)
         .map(async (file) => {
-        const content = await readWorkspaceFile(file.filename).catch(() => null);
+        const content = await readWorkspaceFile(file.filename);
         if (content === null)
             return null;
         if (content.length <= maxFileSize)
@@ -54082,7 +54081,13 @@ async function createOrUpdatePR(octokit, context, updatedContent, targetFile, su
     const existing = await findExistingPR(octokit, owner, repo, headBranch);
     if (existing) {
         info(`Updating existing PR #${existing.number}: ${existing.html_url}`);
-        await pushUpdate(octokit, owner, repo, headBranch, targetFile, updatedContent, existing.head.sha);
+        const commitSha = await commitFile(octokit, owner, repo, existing.head.sha, targetFile, updatedContent);
+        await octokit.rest.git.updateRef({
+            owner, repo,
+            ref: `heads/${headBranch}`,
+            sha: commitSha,
+            force: false,
+        });
         await octokit.rest.pulls.update({
             owner, repo, pull_number: existing.number,
             body: buildPRBody(summary),
@@ -54127,15 +54132,6 @@ async function createNewPR(octokit, owner, repo, baseBranch, headBranch, baseSha
         }).catch(err => warning(`Could not add reviewers: ${err}`));
     }
     return pr.html_url;
-}
-async function pushUpdate(octokit, owner, repo, headBranch, targetFile, content, currentHeadSha) {
-    const commitSha = await commitFile(octokit, owner, repo, currentHeadSha, targetFile, content);
-    await octokit.rest.git.updateRef({
-        owner, repo,
-        ref: `heads/${headBranch}`,
-        sha: commitSha,
-        force: false,
-    });
 }
 async function commitFile(octokit, owner, repo, parentSha, path, content) {
     const { data: parent } = await octokit.rest.git.getCommit({

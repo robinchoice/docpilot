@@ -14,11 +14,9 @@ export function filterFiles(
   files: ChangedFile[],
   excludePatterns: string[]
 ): ChangedFile[] {
-  return files.filter(file => {
-    if (isBinary(file.filename)) return false
-    if (matchesExcludePattern(file.filename, excludePatterns)) return false
-    return true
-  })
+  return files.filter(file =>
+    !isBinary(file.filename) && !matchesExcludePattern(file.filename, excludePatterns)
+  )
 }
 
 function isBinary(filename: string): boolean {
