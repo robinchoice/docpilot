@@ -1,4 +1,4 @@
-import { lstat, readFile, realpath } from 'fs/promises'
+import { readFile, realpath } from 'fs/promises'
 import { resolve, sep } from 'path'
 import type { ChangedFile } from './types.js'
 
@@ -15,7 +15,6 @@ export async function gatherContext(
   const workspace = await realpath(process.env.GITHUB_WORKSPACE || process.cwd())
   const readWorkspaceFile = async (filename: string): Promise<string | null> => {
     const path = resolve(workspace, filename)
-    if ((await lstat(path)).isSymbolicLink()) return null
     const actualPath = await realpath(path)
     if (!actualPath.startsWith(workspace + sep)) return null
     return readFile(actualPath, 'utf-8')

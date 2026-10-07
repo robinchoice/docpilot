@@ -44033,14 +44033,14 @@ function parseInputs() {
     const reviewersRaw = getInput('pr-reviewers');
     return {
         apiKey: getInput('api-key', { required: true }),
-        apiBaseUrl: getInput('api-base-url'),
-        model: getInput('model'),
-        targetFile: getInput('target-file'),
+        apiBaseUrl: getInput('api-base-url') || 'https://openrouter.ai/api/v1',
+        model: getInput('model') || 'anthropic/claude-haiku-4-5-20251001',
+        targetFile: getInput('target-file') || 'README.md',
         githubToken: getInput('github-token', { required: true }),
         excludePatterns: excludeRaw ? excludeRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
         prLabels: labelsRaw ? labelsRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
         prReviewers: reviewersRaw ? reviewersRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
-        maxFileSize: parseInt(getInput('max-file-size'), 10),
+        maxFileSize: parseInt(getInput('max-file-size') || '51200', 10),
     };
 }
 
@@ -46142,8 +46142,6 @@ async function gatherContext(changedFiles, targetFile, maxFileSize) {
     const workspace = await (0,promises_namespaceObject.realpath)(process.env.GITHUB_WORKSPACE || process.cwd());
     const readWorkspaceFile = async (filename) => {
         const path = (0,external_path_.resolve)(workspace, filename);
-        if ((await (0,promises_namespaceObject.lstat)(path)).isSymbolicLink())
-            return null;
         const actualPath = await (0,promises_namespaceObject.realpath)(path);
         if (!actualPath.startsWith(workspace + external_path_.sep))
             return null;
