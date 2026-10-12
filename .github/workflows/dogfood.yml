@@ -6,6 +6,7 @@ on:
     paths-ignore:
       - 'README.md'
       - '.github/workflows/dogfood.yml'
+  workflow_dispatch:
 
 jobs:
   update-docs:
@@ -14,10 +15,22 @@ jobs:
       contents: write
       pull-requests: write
     steps:
+      - name: Check for API key
+        id: key
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          if [ -n "$OPENROUTER_API_KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::OPENROUTER_API_KEY is not set, skipping dogfood run"
+          fi
       - uses: actions/checkout@v4
+        if: steps.key.outputs.present == 'true'
         with:
           fetch-depth: 2
       - uses: ./
+        if: steps.key.outputs.present == 'true'
         with:
           api-key: ${{ secrets.OPENROUTER_API_KEY }}
           model: anthropic/claude-haiku-4-5-20251001

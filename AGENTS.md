@@ -12,6 +12,7 @@
 ## Deploy
 
 - A push to `main` runs `ci.yml` and `dogfood.yml`. Dogfood runs the action from this checkout against its own README and opens a PR if the docs drifted.
+- Without the repo secret `OPENROUTER_API_KEY`, dogfood logs a notice and skips the run. The secret is deliberately not set to avoid running costs.
 - Verify: `gh run watch`.
 
 ## Pitfalls
