@@ -44053,8 +44053,14 @@ function parseInputs() {
 
 const EMPTY_TREE_SHA = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
 async function getChangedFiles(octokit, context) {
-    const before = context.payload.before ?? '';
+    let before = context.payload.before ?? '';
     const after = context.sha;
+    if (context.eventName === 'workflow_dispatch') {
+        const { data: commit } = await octokit.rest.repos.getCommit({
+            ...context.repo, ref: after,
+        });
+        before = commit.parents[0]?.sha ?? '';
+    }
     const isInitialCommit = !before || before === '0000000000000000000000000000000000000000';
     const baseSha = isInitialCommit ? EMPTY_TREE_SHA : before;
     try {

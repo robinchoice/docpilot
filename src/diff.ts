@@ -12,8 +12,15 @@ export async function getChangedFiles(
   octokit: InstanceType<typeof GitHub>,
   context: Context
 ): Promise<ChangedFile[]> {
-  const before = (context.payload as { before?: string }).before ?? ''
+  let before = (context.payload as { before?: string }).before ?? ''
   const after = context.sha
+
+  if (context.eventName === 'workflow_dispatch') {
+    const { data: commit } = await octokit.rest.repos.getCommit({
+      ...context.repo, ref: after,
+    })
+    before = commit.parents[0]?.sha ?? ''
+  }
 
   const isInitialCommit = !before || before === '0000000000000000000000000000000000000000'
   const baseSha = isInitialCommit ? EMPTY_TREE_SHA : before
