@@ -2,9 +2,7 @@
 [extend]
 useDefault = true
 
-# dist/ is the bundled action including third-party code: a JSDoc example in
-# @actions/core trips the entropy rule generic-api-key. Only that rule is skipped
-# there, real token formats like ghp_ or sk-or- are still caught in these files.
+# dist/ bundles third-party code; a JSDoc example in @actions/core trips generic-api-key.
 [[allowlists]]
 description = "Bundled action in dist/"
 targetRules = ["generic-api-key"]
