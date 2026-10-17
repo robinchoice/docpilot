@@ -11,7 +11,7 @@
 
 ## Deploy
 
-- Every push on every branch and fork PRs run `secrets.yml` (gitleaks with `--redact`, rules in `.gitleaks.toml`). A push to `main` also runs `ci.yml` and `dogfood.yml`. Dogfood runs the action from this checkout against its own README and opens a PR if the docs drifted.
+- Every branch/tag push and fork PR runs `secrets.yml` (gitleaks with `--redact`, rules in `.gitleaks.toml`; fork PRs use the base commit's config and ignore file). New branches with no commits beyond the default branch are skipped. A push to `main` also runs `ci.yml` and `dogfood.yml`. Dogfood runs the action from this checkout against its own README and opens a PR if the docs drifted.
 - Without the repo secret `OPENROUTER_API_KEY`, dogfood logs a notice and skips the run. The secret is deliberately not set to avoid running costs.
 - Verify: `gh run watch`.
 
