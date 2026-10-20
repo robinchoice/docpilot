@@ -28,7 +28,7 @@ export async function gatherContext(
   const currentContent = await readWorkspaceFile(targetFile) ?? ''
 
   const contents = await Promise.all(changedFiles
-    .filter(file => file.status !== 'removed' && file.filename !== targetFile)
+    .filter(file => file.status !== 'removed')
     .map(async file => {
       const content = await readWorkspaceFile(file.filename)
       if (content === null) return null
