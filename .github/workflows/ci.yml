@@ -12,6 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      - run: bun install
+      - run: bun install --frozen-lockfile
       - run: bun test
       - run: bunx tsc --noEmit
+      # The action runs the committed dist/, so it must be built from this src/
+      - name: Check that dist/ matches src/
+        run: |
+          bun run build
+          git status --porcelain -- dist
+          test -z "$(git status --porcelain -- dist)"
