@@ -17,6 +17,7 @@
     "openai": "^4.77.0"
   },
   "devDependencies": {
+    "@types/bun": "^1.4.3",
     "@types/node": "^22.0.0",
     "@vercel/ncc": "^0.38.1",
     "typescript": "^5.7.0"
