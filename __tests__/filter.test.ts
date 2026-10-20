@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'bun:test'
 import { filterFiles } from '../src/filter.js'
 import type { ChangedFile } from '../src/types.js'
 

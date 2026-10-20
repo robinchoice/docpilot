@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'bun:test'
 import { parseResponse } from '../src/llm.js'
 
 const VALID_RESPONSE = `Here is the updated documentation.

@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "ncc build src/main.ts -o dist --source-map --license licenses.txt",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -19,7 +19,6 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@vercel/ncc": "^0.38.1",
-    "typescript": "^5.7.0",
-    "vitest": "^5.0.3"
+    "typescript": "^5.7.0"
   }
 }
