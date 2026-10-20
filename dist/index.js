@@ -44073,14 +44073,14 @@ async function getChangedFiles(octokit, context) {
 }
 async function getChangedFilesViaGit(baseSha, headSha) {
     const [diff, nameStatus] = await Promise.all([
-        getExecOutput('git', ['diff', '--unified=3', baseSha, headSha], { silent: true }),
-        getExecOutput('git', ['diff', '--name-status', baseSha, headSha], { silent: true }),
+        getExecOutput('git', ['-c', 'core.quotepath=false', 'diff', '--unified=3', baseSha, headSha], { silent: true }),
+        getExecOutput('git', ['-c', 'core.quotepath=false', 'diff', '--name-status', baseSha, headSha], { silent: true }),
     ]);
     return parseGitDiff(nameStatus.stdout, diff.stdout);
 }
 function parseGitDiff(nameStatus, diff) {
-    const fileMap = new Map();
-    for (const line of nameStatus.trim().split('\n')) {
+    const files = [];
+    for (const line of nameStatus.split('\n')) {
         if (!line.trim())
             continue;
         const parts = line.split('\t');
@@ -44093,43 +44093,23 @@ function parseGitDiff(nameStatus, diff) {
             status = 'removed';
         else if (statusChar === 'R')
             status = 'renamed';
-        fileMap.set(filename, { status, patch: '' });
+        files.push({ filename, status, patch: '' });
     }
-    // Parse patches from unified diff
-    const filePatches = splitDiffByFile(diff);
-    for (const [filename, patch] of filePatches) {
-        const entry = fileMap.get(filename);
-        if (entry)
-            entry.patch = patch;
-    }
-    return Array.from(fileMap.entries()).map(([filename, data]) => ({
-        filename,
-        ...data,
-    }));
-}
-function splitDiffByFile(diff) {
-    const result = new Map();
-    const lines = diff.split('\n');
-    let currentFile = '';
-    let currentPatch = [];
-    for (const line of lines) {
+    // Patch headers look like "diff --git a/old b/new". Match the new name against
+    // the known files, longest first, because paths may themselves contain " b/".
+    const byLength = [...files].sort((a, b) => b.filename.length - a.filename.length);
+    let current;
+    for (const line of diff.split('\n')) {
         if (line.startsWith('diff --git ')) {
-            if (currentFile && currentPatch.length > 0) {
-                result.set(currentFile, currentPatch.join('\n'));
-            }
-            // Extract filename: "diff --git a/foo.ts b/foo.ts" → "foo.ts"
-            const match = line.match(/diff --git a\/(.+) b\/(.+)/);
-            currentFile = match ? match[2] : '';
-            currentPatch = [line];
+            current = byLength.find(file => line.endsWith(` b/${file.filename}`));
+            if (current)
+                current.patch = line;
         }
-        else {
-            currentPatch.push(line);
+        else if (current) {
+            current.patch += '\n' + line;
         }
     }
-    if (currentFile && currentPatch.length > 0) {
-        result.set(currentFile, currentPatch.join('\n'));
-    }
-    return result;
+    return files;
 }
 async function getChangedFilesViaApi(octokit, context, baseSha, headSha, isInitialCommit) {
     const { owner, repo } = context.repo;
