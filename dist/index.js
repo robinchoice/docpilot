@@ -44038,7 +44038,7 @@ function parseInputs() {
     return {
         apiKey: getInput('api-key', { required: true }),
         apiBaseUrl: getInput('api-base-url') || 'https://openrouter.ai/api/v1',
-        model: getInput('model') || 'anthropic/claude-haiku-4-5-20251001',
+        model: getInput('model') || 'anthropic/claude-haiku-4.5',
         targetFile: getInput('target-file') || 'README.md',
         githubToken: getInput('github-token', { required: true }),
         excludePatterns: excludeRaw ? excludeRaw.split(',').map(s => s.trim()).filter(Boolean) : [],

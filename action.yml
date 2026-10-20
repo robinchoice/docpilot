@@ -11,9 +11,9 @@ inputs:
     required: false
     default: 'https://openrouter.ai/api/v1'
   model:
-    description: 'Model ID (provider-specific, e.g. anthropic/claude-haiku-4-5-20251001)'
+    description: 'Model ID (provider-specific, e.g. anthropic/claude-haiku-4.5)'
     required: false
-    default: 'anthropic/claude-haiku-4-5-20251001'
+    default: 'anthropic/claude-haiku-4.5'
   target-file:
     description: 'Documentation file to update'
     required: false

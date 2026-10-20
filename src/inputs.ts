@@ -13,7 +13,7 @@ export function parseInputs(): ActionInputs {
   return {
     apiKey: core.getInput('api-key', { required: true }),
     apiBaseUrl: core.getInput('api-base-url') || 'https://openrouter.ai/api/v1',
-    model: core.getInput('model') || 'anthropic/claude-haiku-4-5-20251001',
+    model: core.getInput('model') || 'anthropic/claude-haiku-4.5',
     targetFile: core.getInput('target-file') || 'README.md',
     githubToken: core.getInput('github-token', { required: true }),
     excludePatterns: excludeRaw ? excludeRaw.split(',').map(s => s.trim()).filter(Boolean) : [],

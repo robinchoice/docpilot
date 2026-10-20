@@ -35,7 +35,7 @@ jobs:
 |---|---|---|---|
 | `api-key` | yes | — | API key for your LLM provider |
 | `api-base-url` | no | `https://openrouter.ai/api/v1` | OpenAI-compatible API endpoint |
-| `model` | no | `anthropic/claude-haiku-4-5-20251001` | Model ID (provider-specific) |
+| `model` | no | `anthropic/claude-haiku-4.5` | Model ID (provider-specific) |
 | `target-file` | no | `README.md` | File to keep up-to-date |
 | `github-token` | no | `${{ github.token }}` | Token for creating PRs |
 | `exclude-patterns` | no | lock files, binaries, dist | Comma-separated glob patterns to ignore |
@@ -48,7 +48,7 @@ jobs:
 ```yaml
 # OpenRouter (default — access to all major models)
 api-key: ${{ secrets.OPENROUTER_API_KEY }}
-model: anthropic/claude-haiku-4-5-20251001
+model: anthropic/claude-haiku-4.5
 
 # OpenAI
 api-key: ${{ secrets.OPENAI_API_KEY }}
