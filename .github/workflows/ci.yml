@@ -14,7 +14,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun test
-      - run: bunx tsc --noEmit
+      - run: bun run typecheck
       # The action runs the committed dist/, so it must be built from this src/
       - name: Check that dist/ matches src/
         run: |

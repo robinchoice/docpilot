@@ -7,7 +7,7 @@
 
 ## Checks
 
-`bun install && bun test && bunx tsc --noEmit`, plus `bun run build` whenever `src/` changed.
+`bun install && bun test && bun run typecheck`, plus `bun run build` whenever `src/` changed.
 
 ## Deploy
 
