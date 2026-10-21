@@ -17,6 +17,7 @@
 
 ## Pitfalls
 
+- Secret scan: Gitleaks 8.30.1 also reads `.gitleaksignore` from the checkout despite `--gitleaks-ignore-path`. The workflow therefore replaces that file with the version from `CONFIG_REF`, which is the base commit for fork PRs.
 - The action runs `dist/index.js`, which is committed. After changing `src/`, rebuild with `bun run build` and commit `dist/` in the same commit, otherwise users and dogfood run the old code. `ci.yml` rebuilds and fails when the committed `dist/` differs.
 - The README tells users to use `robinchoice/docpilot@v1`, but no version tag is published yet. Publishing one is a release and needs Robin's go.
 - `.gitleaks.toml` skips only `generic-api-key` in `dist/` (bundled third-party code). Handle other false positives by fingerprint in `.gitleaksignore`, never disable a rule. A real finding is already public: rotate the secret.
