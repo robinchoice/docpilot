@@ -18,7 +18,7 @@ export async function callLLM(
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (attempt > 0) {
-      core.info(`Retry ${attempt}/${MAX_RETRIES} after ${RETRY_DELAY_MS}ms...`)
+      core.info(`Retry ${attempt}/${MAX_RETRIES} after ${RETRY_DELAY_MS * attempt}ms...`)
       await sleep(RETRY_DELAY_MS * attempt)
     }
 

@@ -1,13 +1,10 @@
 import * as core from '@actions/core'
-import type { GitHub } from '@actions/github/lib/utils'
-import type { context } from '@actions/github'
-
-type Context = typeof context
+import type { Context, Octokit } from './types.js'
 
 const BRANCH_PREFIX = 'docpilot/update-'
 
 export async function createOrUpdatePR(
-  octokit: InstanceType<typeof GitHub>,
+  octokit: Octokit,
   context: Context,
   updatedContent: string,
   targetFile: string,
@@ -55,23 +52,20 @@ export async function createOrUpdatePR(
     base: baseBranch,
   })
 
-  if (labels.length > 0) {
-    await octokit.rest.issues.addLabels({
+  await Promise.all([
+    labels.length > 0 && octokit.rest.issues.addLabels({
       owner, repo, issue_number: pr.number, labels,
-    }).catch(err => core.warning(`Could not add labels: ${err}`))
-  }
-
-  if (reviewers.length > 0) {
-    await octokit.rest.pulls.requestReviewers({
+    }).catch(err => core.warning(`Could not add labels: ${err}`)),
+    reviewers.length > 0 && octokit.rest.pulls.requestReviewers({
       owner, repo, pull_number: pr.number, reviewers,
-    }).catch(err => core.warning(`Could not add reviewers: ${err}`))
-  }
+    }).catch(err => core.warning(`Could not add reviewers: ${err}`)),
+  ])
 
   return pr.html_url
 }
 
 async function findExistingPR(
-  octokit: InstanceType<typeof GitHub>,
+  octokit: Octokit,
   owner: string,
   repo: string,
   headBranch: string
@@ -85,7 +79,7 @@ async function findExistingPR(
 }
 
 async function commitFile(
-  octokit: InstanceType<typeof GitHub>,
+  octokit: Octokit,
   owner: string,
   repo: string,
   parentSha: string,

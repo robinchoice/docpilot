@@ -44028,9 +44028,6 @@ function getOctokit(token, options, ...additionalPlugins) {
 ;// CONCATENATED MODULE: ./src/inputs.ts
 
 function parseInputs() {
-    const excludeRaw = getInput('exclude-patterns');
-    const labelsRaw = getInput('pr-labels');
-    const reviewersRaw = getInput('pr-reviewers');
     const maxFileSize = Number(getInput('max-file-size') || '51200');
     if (!Number.isSafeInteger(maxFileSize) || maxFileSize <= 0) {
         throw new Error('max-file-size must be a positive integer');
@@ -44041,9 +44038,9 @@ function parseInputs() {
         model: getInput('model') || 'anthropic/claude-haiku-4.5',
         targetFile: getInput('target-file') || 'README.md',
         githubToken: getInput('github-token', { required: true }),
-        excludePatterns: excludeRaw ? excludeRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
-        prLabels: labelsRaw ? labelsRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
-        prReviewers: reviewersRaw ? reviewersRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
+        excludePatterns: getInput('exclude-patterns').split(',').map(s => s.trim()).filter(Boolean),
+        prLabels: getInput('pr-labels').split(',').map(s => s.trim()).filter(Boolean),
+        prReviewers: getInput('pr-reviewers').split(',').map(s => s.trim()).filter(Boolean),
         maxFileSize,
     };
 }
@@ -54023,7 +54020,7 @@ async function callLLM(apiKey, apiBaseUrl, model, systemPrompt, userMessage) {
     let lastError = null;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         if (attempt > 0) {
-            info(`Retry ${attempt}/${MAX_RETRIES} after ${RETRY_DELAY_MS}ms...`);
+            info(`Retry ${attempt}/${MAX_RETRIES} after ${RETRY_DELAY_MS * attempt}ms...`);
             await llm_sleep(RETRY_DELAY_MS * attempt);
         }
         try {
@@ -54102,16 +54099,14 @@ async function createOrUpdatePR(octokit, context, updatedContent, targetFile, su
         head: headBranch,
         base: baseBranch,
     });
-    if (labels.length > 0) {
-        await octokit.rest.issues.addLabels({
+    await Promise.all([
+        labels.length > 0 && octokit.rest.issues.addLabels({
             owner, repo, issue_number: pr.number, labels,
-        }).catch(err => warning(`Could not add labels: ${err}`));
-    }
-    if (reviewers.length > 0) {
-        await octokit.rest.pulls.requestReviewers({
+        }).catch(err => warning(`Could not add labels: ${err}`)),
+        reviewers.length > 0 && octokit.rest.pulls.requestReviewers({
             owner, repo, pull_number: pr.number, reviewers,
-        }).catch(err => warning(`Could not add reviewers: ${err}`));
-    }
+        }).catch(err => warning(`Could not add reviewers: ${err}`)),
+    ]);
     return pr.html_url;
 }
 async function findExistingPR(octokit, owner, repo, headBranch) {

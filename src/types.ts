@@ -1,3 +1,8 @@
+import type { context, getOctokit } from '@actions/github'
+
+export type Octokit = ReturnType<typeof getOctokit>
+export type Context = typeof context
+
 export interface ActionInputs {
   apiKey: string
   apiBaseUrl: string

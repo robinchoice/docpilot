@@ -1,15 +1,11 @@
 import * as exec from '@actions/exec'
 import * as core from '@actions/core'
-import type { GitHub } from '@actions/github/lib/utils'
-import type { context } from '@actions/github'
-import type { ChangedFile } from './types.js'
-
-type Context = typeof context
+import type { ChangedFile, Context, Octokit } from './types.js'
 
 const EMPTY_TREE_SHA = '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
 
 export async function getChangedFiles(
-  octokit: InstanceType<typeof GitHub>,
+  octokit: Octokit,
   context: Context
 ): Promise<ChangedFile[]> {
   let before = (context.payload as { before?: string }).before ?? ''
@@ -76,7 +72,7 @@ export function parseGitDiff(nameStatus: string, diff: string): ChangedFile[] {
 }
 
 async function getChangedFilesViaApi(
-  octokit: InstanceType<typeof GitHub>,
+  octokit: Octokit,
   context: Context,
   baseSha: string,
   headSha: string,

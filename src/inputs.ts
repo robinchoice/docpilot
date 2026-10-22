@@ -2,9 +2,6 @@ import * as core from '@actions/core'
 import type { ActionInputs } from './types.js'
 
 export function parseInputs(): ActionInputs {
-  const excludeRaw = core.getInput('exclude-patterns')
-  const labelsRaw = core.getInput('pr-labels')
-  const reviewersRaw = core.getInput('pr-reviewers')
   const maxFileSize = Number(core.getInput('max-file-size') || '51200')
   if (!Number.isSafeInteger(maxFileSize) || maxFileSize <= 0) {
     throw new Error('max-file-size must be a positive integer')
@@ -16,9 +13,9 @@ export function parseInputs(): ActionInputs {
     model: core.getInput('model') || 'anthropic/claude-haiku-4.5',
     targetFile: core.getInput('target-file') || 'README.md',
     githubToken: core.getInput('github-token', { required: true }),
-    excludePatterns: excludeRaw ? excludeRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
-    prLabels: labelsRaw ? labelsRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
-    prReviewers: reviewersRaw ? reviewersRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
+    excludePatterns: core.getInput('exclude-patterns').split(',').map(s => s.trim()).filter(Boolean),
+    prLabels: core.getInput('pr-labels').split(',').map(s => s.trim()).filter(Boolean),
+    prReviewers: core.getInput('pr-reviewers').split(',').map(s => s.trim()).filter(Boolean),
     maxFileSize,
   }
 }
